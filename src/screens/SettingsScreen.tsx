@@ -4,6 +4,7 @@ import {ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View}
 import {Button} from '@/components/Button';
 import {Card} from '@/components/Card';
 import {Screen} from '@/components/Screen';
+import {SyncCard} from '@/components/SyncCard';
 import {APP} from '@/constants/config';
 import {colors, fontSize, radius, spacing} from '@/constants/theme';
 import {clearAllTables} from '@/database/database';
@@ -192,7 +193,7 @@ export function SettingsScreen() {
   const clearAllData = () => {
     Alert.alert(
       'Clear all data?',
-      'This permanently deletes every product, sale, stock movement and photo on this device. It cannot be undone.',
+      'This deletes every product, sale, stock movement and photo on this device. Other devices are not affected, and if cloud sync is set up the data will come back on the next sync.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -216,7 +217,10 @@ export function SettingsScreen() {
                         // image is an orphan and gets swept.
                         await imageStorageService.deleteOrphans([]);
                         await reload();
-                        Alert.alert('All data cleared', 'The app is back to a clean state.');
+                        Alert.alert(
+                          'This device cleared',
+                          'The app is back to a clean state. If cloud sync is set up, the shop data will download again on the next sync.',
+                        );
                       } catch (caught) {
                         Alert.alert('Could not clear the data', toUserMessage(caught));
                       } finally {
@@ -235,6 +239,9 @@ export function SettingsScreen() {
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.sectionTitle}>Sync</Text>
+        <SyncCard />
+
         <Text style={styles.sectionTitle}>Export</Text>
         <Card>
           <Text style={styles.cardTitle}>Excel spreadsheet</Text>

@@ -1,0 +1,6 @@
+node_modules/
+android/
+coverage/
+# Cloudflare Workers code: different runtime, its own tsconfig and lint scope.
+# The React Native eslint config does not apply to it.
+server/

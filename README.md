@@ -1,11 +1,16 @@
-# Inventory — offline Android stock manager
+# Inventory — offline-first Android stock manager
 
-A barcode-driven inventory and sales app for a single shop counter. It runs
-entirely on the phone: local SQLite, local file storage, no server, no account,
-no network call at any point.
+A barcode-driven inventory and sales app for a shop counter. Every sale and
+stock movement is written to local SQLite first and works with no signal at
+all; when a connection is available those changes sync to a shared database so
+several devices see one inventory.
 
 Scan a product's barcode, see its stock, sell it. The target is under ten
-seconds from opening the app to a recorded sale.
+seconds from opening the app to a recorded sale — which is why the network is
+never on that path.
+
+Sync is optional and off until configured. Leave it unset and the app behaves
+exactly as it did before: entirely on the phone, no account, no network call.
 
 ## What it does
 
@@ -25,6 +30,9 @@ seconds from opening the app to a recorded sale.
 - **Backup and restore** — one ZIP containing the database, its metadata and
   every product image. Restore validates the archive before replacing anything
   and takes a safety snapshot first.
+- **Multi-device sync** — an optional shared Postgres database and S3 bucket, so
+  two counters run off one inventory. Offline-first: the till never waits on the
+  network. See [Multi-device sync](#multi-device-sync).
 
 ## Requirements
 
@@ -61,9 +69,6 @@ npm run build:android:debug   # android/app/build/outputs/apk/debug/app-debug.ap
 npm run build:android         # release; needs a signing config, see below
 ```
 
-Release builds strip the `INTERNET` permission, so the shipped APK cannot reach
-the network even in principle.
-
 Without a signing config, `assembleRelease` falls back to the debug keystore so
 the build still runs locally. **Do not distribute that APK.** To sign properly,
 put your keystore at `android/app/release.keystore` and add the credentials to
@@ -91,10 +96,12 @@ src/
   database/     driver abstraction, schema, migrations, demo seed data
   repositories/ SQL per entity — products, sales, inventory, stats
   services/     scanning, image storage, inventory maths, Excel, backup
+  sync/         change tracking, merge rules, sync engine, image transfer
   screens/      one file per screen
   components/   shared UI
   navigation/   stack + tabs, typed routes
   utils/        barcode, stock, dates, ids, errors
+server/         the sync API: a Cloudflare Worker over Neon Postgres and S3
 ```
 
 Some decisions worth knowing about before changing things:
@@ -118,6 +125,17 @@ sales and export tests exercise production SQL rather than a stand-in.
 the shopkeeper's today. The test suite runs in `Asia/Kolkata` rather than UTC so
 off-by-one-day bugs cannot hide.
 
+**Stock is a ledger, not a number.** `products.current_quantity` is a cache;
+the truth is `SUM(quantity)` over `inventory_transactions`. Everything that
+moves stock writes a journal row, and there is a test asserting the two always
+agree. This is what makes multi-device safe — see below.
+
+**Local changes are tracked by SQLite triggers**, not by code at each write
+site. `src/database/schema/sync.ts` installs them. A repository method that
+forgot to record its change would leave a row that exists on one phone and
+nowhere else, and there are enough write paths that "remember to add it" is not
+a plan.
+
 ## Reading a barcode from a photo
 
 A barcode in a product photograph may be small, in a corner, or at an angle — the
@@ -137,23 +155,66 @@ The cases it genuinely cannot handle are listed in
 
 ## Permissions
 
-Only three, each tied to a feature you can point at:
+Each tied to a feature you can point at:
 
 | Permission | Why |
 |---|---|
 | `CAMERA` | live barcode scanning |
 | `READ_MEDIA_IMAGES` (API 33+) / `READ_EXTERNAL_STORAGE` (API ≤32) | choosing a product photo from the gallery |
-| `INTERNET` | Metro dev server only; removed from release builds |
+| `INTERNET` | cloud sync, and the Metro dev server in debug builds |
+| `ACCESS_NETWORK_STATE` | skipping a sync that would only time out |
 
 Sharing exports and backups goes through a `FileProvider`, so no write-storage
 permission is needed.
 
-## No accounts, no cloud
+## Multi-device sync
 
-Version 1 has no login and no sync, by design. Data lives on the phone; the only
-way it leaves is a backup or an export that you explicitly share. If
-authentication is ever added, it belongs in front of the navigation container in
-`App.tsx` — nothing in the data layer assumes a single anonymous user.
+Off by default. Fill in the `SYNC` block in `src/constants/config.ts` with your
+Worker URL and key and rebuild; until then nothing touches the network. Setting
+the server up takes about fifteen minutes — see [server/README.md](server/README.md).
+
+### Offline-first, not online
+
+Every write goes to local SQLite and returns immediately. A background pass
+pushes the outbox and pulls other devices' changes roughly once a minute and on
+launch. Pulling the plug on the router changes nothing about how the till
+behaves; the outbox simply grows until the connection returns.
+
+### How two tills stay correct
+
+Stock is never sent as a number, only as the signed movements that produced it.
+Merging two devices is a union of their ledgers, so if both sell one unit while
+offline, both sales survive and the total is right. Had `current_quantity` been
+synced as a value, last-write-wins would have thrown one of the sales away.
+
+| Data | Rule |
+|---|---|
+| Stock movements, sales, sale lines | Append-only. Recorded once, never rewritten. |
+| Product details, settings | Last write wins, on a timestamp that only genuine edits move. |
+| Stock quantity and status | Never synced. Recomputed from the ledger on every device. |
+
+Sale numbers carry a device tag (`S-20260827-0007-A3F`). Without it two counters
+both reach sequence 0007 offline and one receipt is lost on merge.
+
+If two counters add the same barcode offline, both products are kept and one
+barcode is suffixed, with a warning in Settings asking you to merge them. A row
+the merge genuinely cannot apply is reported and skipped rather than being
+retried forever, so one bad row can never stall sync.
+
+### What it cannot prevent
+
+If two devices are both offline and each sells the last unit, both sales are
+real and the merged ledger is short. No design fixes that after the fact. The
+app detects it, keeps both sales, and shows a "stock needs checking" warning in
+Settings naming the product and the shortfall, rather than quietly clamping.
+
+### Photos
+
+Product photos go to S3 under the same relative path SQLite already stores, so
+the path is both the local filename and the object key. Uploads are queued and
+retried; a photo that will not transfer never blocks the rows, because the
+product's price and stock matter more than its picture. Thumbnails are rebuilt
+locally rather than transferred.
 
 ## Demo data
 

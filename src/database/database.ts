@@ -56,12 +56,35 @@ export async function prepareDatabase(target: SqlDriver): Promise<void> {
 
 export {LATEST_SCHEMA_VERSION};
 
-/** Wipes every row but keeps the schema. Used by "Clear all data" and restore. */
+/**
+ * Wipes every row on *this device* but keeps the schema.
+ *
+ * Deliberately local-only. The change-tracking triggers would otherwise turn a
+ * wipe into a delete for every row, push it, and erase the shop's inventory on
+ * every other device — an unrecoverable outcome from a button whose dialog
+ * promises to clear "this device". So the triggers are suppressed, the sync
+ * bookkeeping is dropped, and the cursor is reset: the next sync repopulates
+ * this device from the server rather than emptying everyone else's.
+ *
+ * Wiping the shop's data everywhere is not something the app offers; it is done
+ * against the database directly, deliberately.
+ */
 export async function clearAllTables(target: SqlDriver = getDriver()): Promise<void> {
   await target.transaction(tx => {
-    // Children first — foreign keys are enforced.
-    for (const table of [...ALL_TABLES].reverse()) {
-      tx.execute(`DELETE FROM ${table};`);
+    tx.execute("UPDATE sync_control SET value = '1' WHERE key = 'applying';");
+    try {
+      // Children first — foreign keys are enforced.
+      for (const table of [...ALL_TABLES].reverse()) {
+        tx.execute(`DELETE FROM ${table};`);
+      }
+      // Nothing is left to push, and nothing must be resurrected as a tombstone.
+      tx.execute('DELETE FROM sync_outbox;');
+      tx.execute('DELETE FROM sync_tombstones;');
+      tx.execute('DELETE FROM image_sync_queue;');
+      // Rewound so the next sync pulls the shop's data back down in full.
+      tx.execute("UPDATE sync_control SET value = '0' WHERE key = 'cursor';");
+    } finally {
+      tx.execute("UPDATE sync_control SET value = '0' WHERE key = 'applying';");
     }
   });
   await target.execute('VACUUM;');

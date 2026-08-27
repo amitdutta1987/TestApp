@@ -91,9 +91,9 @@ describe('sale numbers', () => {
     expect(sequences).toEqual([1, 2, 3]);
   });
 
-  test('the shape is S-YYYYMMDD-NNNN', async () => {
+  test('the shape is S-YYYYMMDD-NNNN-DEV', async () => {
     const result = await inventory.sellProduct(pen.id, 1);
-    expect(result.sale.saleNumber).toMatch(/^S-\d{8}-\d{4}$/);
+    expect(result.sale.saleNumber).toMatch(/^S-\d{8}-\d{4}-[0-9A-F]{3}$/);
   });
 
   describe('when the phone is in a timezone offset from UTC', () => {
@@ -114,8 +114,10 @@ describe('sale numbers', () => {
       const first = await inventory.sellProduct(pen.id, 1);
       const second = await inventory.sellProduct(pen.id, 1);
 
-      expect(first.sale.saleNumber).toBe('S-20260824-0001');
-      expect(second.sale.saleNumber).toBe('S-20260824-0002');
+      // The device tag is random per install, so the assertion is on the part
+      // this test is actually about: the local date and the per-day sequence.
+      expect(first.sale.saleNumber).toMatch(/^S-20260824-0001-[0-9A-F]{3}$/);
+      expect(second.sale.saleNumber).toMatch(/^S-20260824-0002-[0-9A-F]{3}$/);
     });
   });
 });

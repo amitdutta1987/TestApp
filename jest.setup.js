@@ -70,6 +70,8 @@ jest.mock('@dr.pogodin/react-native-fs', () => ({
   readFile: jest.fn(),
   readDir: jest.fn(),
   stat: jest.fn(),
+  uploadFiles: jest.fn(),
+  downloadFile: jest.fn(),
 }));
 
 jest.mock('react-native-screens', () => ({enableScreens: jest.fn()}));

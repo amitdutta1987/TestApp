@@ -2,11 +2,15 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      This app is fully offline. INTERNET is declared only because the React Native
-      dev server (Metro) needs it for debug builds; it is stripped from release builds
-      below so the shipped APK cannot access the network at all.
+      Cloud sync. The app remains offline-first — every sale and stock movement is
+      written to local SQLite first and works with no signal at all — but it now
+      pushes those changes to the sync Worker and pulls other devices' changes
+      back, and fetches product photos from object storage.
     -->
-   
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Lets the app skip a sync attempt it knows will fail, rather than waiting
+         for a request to time out on the scan-to-sell path. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Live barcode scanning -->
     <uses-permission android:name="android.permission.CAMERA" />

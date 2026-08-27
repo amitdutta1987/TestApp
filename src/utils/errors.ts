@@ -20,6 +20,12 @@ export type AppErrorCode =
   | 'RESTORE_FAILED'
   | 'INVALID_BACKUP'
   | 'CANCELLED'
+  // Sync failures are never fatal: the device keeps working offline, so these
+  // are worded to reassure rather than alarm.
+  | 'SYNC_NOT_CONFIGURED'
+  | 'SYNC_UNREACHABLE'
+  | 'SYNC_UNAUTHORISED'
+  | 'SYNC_FAILED'
   | 'UNKNOWN';
 
 export class AppError extends Error {

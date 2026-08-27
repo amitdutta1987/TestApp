@@ -196,8 +196,9 @@ export class ProductRepository extends BaseRepository {
           `INSERT INTO products (
              id, barcode, sku, name, category, brand, description, color, size, material,
              supplier, rack_location, purchase_price, selling_price, minimum_stock,
-             current_quantity, status, lifecycle, primary_image, created_at, updated_at
-           ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'ACTIVE', ?,?,?);`,
+             current_quantity, status, lifecycle, primary_image, created_at, updated_at,
+             metadata_updated_at
+           ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'ACTIVE', ?,?,?,?);`,
           [
             id,
             barcode,
@@ -218,6 +219,8 @@ export class ProductRepository extends BaseRepository {
             status,
             primaryImage,
             timestamp,
+            timestamp,
+            // Sync compares this, not updated_at, to decide whose edit wins.
             timestamp,
           ],
         );
@@ -325,6 +328,11 @@ export class ProductRepository extends BaseRepository {
     }
 
     push('updated_at', nowIso());
+    /**
+     * metadata_updated_at is deliberately NOT set here. A trigger owns it —
+     * see buildMetadataClockTrigger. Setting it at each write site is what
+     * broke deactivate(), reactivate() and the primary-image writes.
+     */
     params.push(id);
 
     try {

@@ -12,6 +12,7 @@ import {ProductRepository} from '@/repositories/ProductRepository';
 import {StatsRepository} from '@/repositories/StatsRepository';
 import type {BackupMetadata, BackupValidationReport} from '@/types';
 import {fileStamp, nowIso} from '@/utils/date';
+import {resetSyncIdentityAfterRestore} from '@/sync/restore';
 import {AppError} from '@/utils/errors';
 import {OpSqliteDriver} from '@/database/drivers/OpSqliteDriver';
 import {ensureStorageDirs, toAbsolutePath} from './ImageStorageService';
@@ -325,7 +326,12 @@ export class BackupService {
       }
 
       // Reopen and run migrations: an older backup is upgraded on the way in.
-      await initDatabase();
+      const reopened = await initDatabase();
+
+      // The archive carried the *source* device's sync identity and cursor.
+      // Adopting them would make two restored phones mint identical sale
+      // numbers; see resetSyncIdentityAfterRestore.
+      await resetSyncIdentityAfterRestore(reopened);
 
       const stillMissing: string[] = [];
       for (const relativePath of report.metadata.referencedImages) {

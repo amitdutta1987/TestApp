@@ -1,0 +1,21 @@
+{
+  "name": "inventory-sync-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sync API for the Inventory app: Neon Postgres + S3 presigning, on Cloudflare Workers.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "schema": "psql \"$DATABASE_URL\" -f schema.sql"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "aws4fetch": "^1.0.20"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^3.95.0"
+  }
+}

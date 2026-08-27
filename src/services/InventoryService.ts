@@ -3,7 +3,7 @@ import type {SqlDriver, SqlTransaction} from '@/database/driver';
 import type {InventoryTransactionType, Sale, SaleItem, SaleResult} from '@/types';
 import {localDateKey, nowIso} from '@/utils/date';
 import {AppError, InsufficientStockError, wrapDbError} from '@/utils/errors';
-import {buildSaleNumber, generateId} from '@/utils/id';
+import {buildSaleNumber, deviceTagFrom, generateId} from '@/utils/id';
 import {assertValidQuantity, deriveStatus} from '@/utils/stock';
 
 export interface StockChangeResult {
@@ -27,9 +27,25 @@ interface ProductStockRow {
 }
 
 /**
+ * Reads this install's device tag inside the open transaction.
+ *
+ * sync_control is device-local and never synced, so this is a cheap local read
+ * rather than anything the network could delay — which matters, because it sits
+ * on the scan-to-sell path.
+ */
+function loadDeviceTag(tx: SqlTransaction): string | null {
+  const result = tx.execute<{value: string}>(
+    "SELECT value FROM sync_control WHERE key = 'device_id';",
+  );
+  return deviceTagFrom(result.rows[0]?.value ?? null);
+}
+
+/**
  * Reads the product row inside the open transaction. Doing the read here rather
  * than before BEGIN is the whole point: under BEGIN IMMEDIATE nothing can change
- * the quantity between the check and the write, so overselling is impossible.
+ * the quantity between the check and the write, so on *this* device overselling
+ * is impossible. Across devices that were offline it is not preventable at all;
+ * src/sync/stock.ts reconciles and reports it instead.
  */
 function loadStockRow(tx: SqlTransaction, productId: string): ProductStockRow {
   const result = tx.execute<ProductStockRow>(
@@ -125,6 +141,9 @@ export class InventoryService implements InventoryServiceContract {
         // date that buildSaleNumber stamps on: keying the count off the UTC date
         // instead makes the counter restart mid-day in any offset timezone, and
         // the second sale then reuses a sale_number that is UNIQUE.
+        //
+        // The LIKE also spans sales pulled from other devices, so the counter
+        // continues across the merged day rather than restarting per device.
         const datePrefix = `S-${localDateKey(timestamp).replace(/-/g, '')}-`;
         const seqResult = tx.execute<{total: number}>(
           'SELECT COUNT(*) AS total FROM sales WHERE sale_number LIKE ?;',
@@ -133,7 +152,9 @@ export class InventoryService implements InventoryServiceContract {
         const sequence = Number(seqResult.rows[0]?.total ?? 0) + 1;
 
         const saleId = generateId('sal');
-        const saleNumber = buildSaleNumber(now, sequence);
+        // The device tag is what stops two counters minting the same number for
+        // different sales; see buildSaleNumber.
+        const saleNumber = buildSaleNumber(now, sequence, loadDeviceTag(tx));
         const unitPrice = product.selling_price;
         const totalPrice = Number((unitPrice * quantity).toFixed(2));
 

@@ -10,6 +10,7 @@ import {initDatabase} from '@/database/database';
 import {RootNavigator} from '@/navigation/RootNavigator';
 import {navigationRef} from '@/navigation/navigationRef';
 import {ensureStorageDirs} from '@/services/ImageStorageService';
+import {syncEngine} from '@/sync/SyncEngine';
 import {toUserMessage} from '@/utils/errors';
 
 type Boot = {status: 'loading'} | {status: 'ready'} | {status: 'failed'; message: string};
@@ -28,6 +29,13 @@ export default function App() {
       await initDatabase();
       await ensureStorageDirs();
       setBoot({status: 'ready'});
+      /**
+       * Started after the gate opens, never awaited. Sync is a background
+       * convenience; blocking the counter on a network round-trip would defeat
+       * the point of keeping SQLite as the working store. start() is a no-op
+       * when no sync server is configured.
+       */
+      syncEngine.start();
     } catch (error) {
       setBoot({status: 'failed', message: toUserMessage(error)});
     }
@@ -35,6 +43,7 @@ export default function App() {
 
   useEffect(() => {
     void start();
+    return () => syncEngine.stop();
   }, [start]);
 
   return (

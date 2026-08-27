@@ -1,0 +1,24 @@
+name = "inventory-sync"
+main = "src/index.ts"
+compatibility_date = "2024-11-27"
+# Required by @neondatabase/serverless for connection pooling over HTTP.
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets are NOT set here — this file is committed. Set each one with:
+#   wrangler secret put DATABASE_URL
+#   wrangler secret put SYNC_API_KEY
+#   wrangler secret put AWS_ACCESS_KEY_ID
+#   wrangler secret put AWS_SECRET_ACCESS_KEY
+
+
+[vars]
+# --- Cloudflare R2 (the default: 10 GB free, no egress charge) ---------------
+# Your R2 S3 endpoint, from the R2 dashboard. The account id is in the URL.
+S3_ENDPOINT = "https://7e44237262f7fb188049db175912f78d.r2.cloudflarestorage.com"
+S3_BUCKET   = "inventory-images"
+# R2 signs with the literal region "auto". Do not put a real region here.
+AWS_REGION  = "auto"
+
+# --- AWS S3 instead? --------------------------------------------------------
+# Clear S3_ENDPOINT to "" and set AWS_REGION to the bucket's actual region,
+# e.g. "ap-south-1". The region is baked into every signature, so a mismatch

@@ -1,8 +1,35 @@
 import ImageResizer from '@bam.tech/react-native-image-resizer';
 import * as RNFS from '@dr.pogodin/react-native-fs';
 import {DIRS, IMAGE} from '@/constants/config';
+import {getDriver} from '@/database/database';
+import {nowIso} from '@/utils/date';
 import {AppError} from '@/utils/errors';
 import {generateId} from '@/utils/id';
+
+/**
+ * Queues a freshly saved photo for upload to object storage.
+ *
+ * Done here rather than at the call sites for the same reason change tracking
+ * uses triggers: there are several places that save an image, and one that
+ * forgot to enqueue would leave a product looking fine on this phone and
+ * pictureless on every other one.
+ *
+ * Deliberately swallows its own failures. Saving a photo has to keep working
+ * with no database open and no network, which is the offline case the app is
+ * built around; the next sync re-queues anything missed via queueMissingImages.
+ */
+async function queueForUpload(relativePath: string): Promise<void> {
+  try {
+    await getDriver().execute(
+      `INSERT INTO image_sync_queue (path, direction, attempts, queued_at)
+       VALUES (?, 'UPLOAD', 0, ?)
+       ON CONFLICT(path) DO UPDATE SET direction = 'UPLOAD', attempts = 0;`,
+      [relativePath, nowIso()],
+    );
+  } catch {
+    // Not fatal: the image is on disk, and the next sync sweeps for strays.
+  }
+}
 
 /**
  * Contract from the spec. Paths handed back are *relative* (e.g.
@@ -108,6 +135,8 @@ export class ImageStorageService implements ImageStorageServiceContract {
     } catch {
       // Ignored: the list falls back to the full image.
     }
+
+    await queueForUpload(relativePath);
 
     return relativePath;
   }

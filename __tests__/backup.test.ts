@@ -197,7 +197,7 @@ describe('creating a backup', () => {
       saleItems: 1,
       inventoryTransactions: 2,
     });
-    expect(result.metadata.schemaVersion).toBe(1);
+    expect(result.metadata.schemaVersion).toBe(3);
     expect(result.metadata.appName).toBe('Inventory');
   });
 

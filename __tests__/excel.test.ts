@@ -106,7 +106,7 @@ describe('the exported workbook', () => {
   test('the sales sheet carries the line that was actually sold', async () => {
     const rows = rowsOf(roundTrip(buildWorkbook(await exporter.collect())), 'Sales');
     expect(rows).toHaveLength(2);
-    expect(rows[1][0]).toMatch(/^S-\d{8}-\d{4}$/);
+    expect(rows[1][0]).toMatch(/^S-\d{8}-\d{4}-[0-9A-F]{3}$/);
     expect(rows[1][2]).toBe('001234567890');
     expect(rows[1][4]).toBe('12');
     expect(rows[1][6]).toBe('120');
