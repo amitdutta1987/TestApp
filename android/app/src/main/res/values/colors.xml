@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirrors colors.background in src/constants/theme.ts. Used as the window
+         background so the app does not flash white before React mounts. -->
+    <color name="app_background">#FAF6F1</color>
+</resources>

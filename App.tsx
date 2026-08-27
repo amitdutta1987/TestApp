@@ -1,6 +1,6 @@
 import {NavigationContainer} from '@react-navigation/native';
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, StatusBar, StyleSheet, Text, View} from 'react-native';
+import {ActivityIndicator, Image, StatusBar, StyleSheet, Text, View} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {Button} from '@/components/Button';
@@ -49,7 +49,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor={colors.primaryDark} />
+        {/*
+          Android 15+ enforces edge-to-edge and ignores StatusBar's
+          backgroundColor entirely — the bar is transparent and shows whatever
+          view sits behind it, which is the root below. The prop is kept for
+          Android 14 and older, where it still applies. Dark icons, because that
+          strip is now the cream body colour rather than the maroon header.
+        */}
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         {boot.status === 'ready' ? (
           <NavigationContainer ref={navigationRef}>
             <RootNavigator />
@@ -58,7 +65,15 @@ export default function App() {
           <View style={styles.centre}>
             {boot.status === 'loading' ? (
               <>
+                <Image
+                  source={require('@/assets/logo.png')}
+                  style={styles.logo}
+                  // The artwork is already a disc with a transparent surround;
+                  // the radius here only guards against a non-square render.
+                  accessibilityLabel={`${APP.name} logo`}
+                />
                 <Text style={styles.title}>{APP.name}</Text>
+                <Text style={styles.tagline}>{APP.tagline}</Text>
                 <ActivityIndicator color={colors.primary} size="large" style={styles.spinner} />
               </>
             ) : (
@@ -77,6 +92,10 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: {
+    // Painted, not left transparent: this is what shows through the status bar
+    // on edge-to-edge Android, so the strip above the header reads as body
+    // rather than as a white band.
+    backgroundColor: colors.background,
     flex: 1,
   },
   centre: {
@@ -86,11 +105,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.xl,
   },
+  logo: {
+    borderRadius: 64,
+    height: 128,
+    width: 128,
+  },
   title: {
     color: colors.primary,
     fontSize: fontSize.xxl,
     fontWeight: '800',
     letterSpacing: 1,
+    marginTop: spacing.lg,
+  },
+  tagline: {
+    color: colors.textMuted,
+    fontSize: fontSize.sm,
+    letterSpacing: 2,
+    marginTop: spacing.xs,
+    textTransform: 'uppercase',
   },
   spinner: {
     marginTop: spacing.xl,

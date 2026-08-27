@@ -198,7 +198,7 @@ describe('creating a backup', () => {
       inventoryTransactions: 2,
     });
     expect(result.metadata.schemaVersion).toBe(3);
-    expect(result.metadata.appName).toBe('Inventory');
+    expect(result.metadata.appName).toBe('Sutaghar');
   });
 
   test('every referenced image file travels inside the archive', async () => {

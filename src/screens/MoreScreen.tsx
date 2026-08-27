@@ -1,6 +1,6 @@
 import {useNavigation} from '@react-navigation/native';
 import React from 'react';
-import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {Card} from '@/components/Card';
 import {Screen} from '@/components/Screen';
 import {APP} from '@/constants/config';
@@ -70,12 +70,19 @@ export function MoreScreen() {
         ))}
 
         <Card style={styles.about}>
+          <Image
+            source={require('@/assets/logo.png')}
+            style={styles.aboutLogo}
+            accessibilityLabel={`${APP.name} logo`}
+          />
           <Text style={styles.aboutTitle}>{APP.name}</Text>
-          <Text style={styles.aboutLine}>Version {APP.version}</Text>
+          <Text style={styles.aboutLine}>
+            {APP.tagline} · Version {APP.version}
+          </Text>
           <Text style={styles.aboutBody}>
-            This app works entirely on this phone. Products, sales and stock history live in a
-            local database, and photos are kept in the app's private storage. Nothing is uploaded
-            and no account is needed.
+            Every sale and stock change is written to this phone first, so the counter keeps
+            working with no signal at all. When there is a connection those changes sync to your
+            other devices, and photos are stored in the cloud.
           </Text>
           <Text style={styles.aboutBody}>
             Keep your data safe by creating a backup from Settings and saving the .zip file
@@ -140,15 +147,24 @@ const styles = StyleSheet.create({
   about: {
     marginTop: spacing.lg,
   },
+  aboutLogo: {
+    alignSelf: 'center',
+    borderRadius: 36,
+    height: 72,
+    marginBottom: spacing.md,
+    width: 72,
+  },
   aboutTitle: {
     color: colors.text,
     fontSize: fontSize.lg,
     fontWeight: '800',
+    textAlign: 'center',
   },
   aboutLine: {
     color: colors.textMuted,
     fontSize: fontSize.sm,
     marginTop: 2,
+    textAlign: 'center',
   },
   aboutBody: {
     color: colors.textMuted,

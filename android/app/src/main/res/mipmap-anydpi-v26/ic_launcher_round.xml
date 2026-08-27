@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon, used from API 26 onwards. The launcher applies its own mask —
+  circle, squircle or rounded square depending on the device — to these two
+  layers, which is why the artwork cannot simply be a full-bleed bitmap.
+
+  The background is the logo's own backdrop colour, so wherever a mask cuts
+  wider than the disc there is no visible seam.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

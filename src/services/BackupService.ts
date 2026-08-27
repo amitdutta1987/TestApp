@@ -208,7 +208,7 @@ export class BackupService {
 
     const metadataPath = `${backupRoot}/${METADATA_FILE}`;
     if (!(await RNFS.exists(metadataPath))) {
-      errors.push('metadata.json is missing — this is not an Inventory backup.');
+      errors.push(`metadata.json is missing — this is not a ${APP.name} backup.`);
     } else {
       try {
         metadata = JSON.parse(await RNFS.readFile(metadataPath, 'utf8')) as BackupMetadata;

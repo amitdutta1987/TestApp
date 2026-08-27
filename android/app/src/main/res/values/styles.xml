@@ -4,6 +4,13 @@
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <!-- Shown for the moment before React mounts; matching the app's own
+             background avoids a white flash on cold start. -->
+        <item name="android:windowBackground">@color/app_background</item>
+        <!-- Dark status-bar icons from the very first frame. React Native's
+             StatusBar barStyle only applies once JS has mounted, which would
+             otherwise leave white icons on the cream strip during startup. -->
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
 </resources>

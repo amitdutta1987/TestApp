@@ -1,7 +1,8 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React from 'react';
-import {StyleSheet, Text} from 'react-native';
+import {StyleSheet, Text, View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {colors, fontSize} from '@/constants/theme';
 import {AddStockScreen} from '@/screens/AddStockScreen';
 import {DashboardScreen} from '@/screens/DashboardScreen';
@@ -25,6 +26,40 @@ const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /**
+ * Splits the header into a body-coloured status-bar strip and a maroon bar.
+ *
+ * Android 15 enforces edge-to-edge: the status bar is transparent and simply
+ * shows whatever is drawn beneath it, which is the header. Left alone the
+ * maroon runs all the way to the top of the screen. Setting a status-bar colour
+ * is no longer an option — that API is ignored from Android 15 — so the split
+ * is drawn here instead, behind the header, where it also survives the header
+ * being pushed around by navigation animations.
+ *
+ * Done as a header background rather than a spacer above the navigator on
+ * purpose: a spacer would push every screen down, including the full-bleed
+ * camera in ScannerScreen, which draws its own edge-to-edge overlay.
+ */
+function HeaderBackground() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={styles.headerBackground}>
+      <View style={[styles.headerStatusStrip, {height: insets.top}]} />
+      <View style={styles.headerBar} />
+    </View>
+  );
+}
+
+/** Shared by both navigators so the tab and stack headers cannot drift apart. */
+const headerOptions = {
+  headerBackground: () => <HeaderBackground />,
+  // Transparent, or it would paint over the split above.
+  headerStyle: {backgroundColor: 'transparent'},
+  headerTintColor: colors.white,
+  headerTitleStyle: {fontWeight: '700' as const},
+  headerShadowVisible: false,
+};
+
+/**
  * Text glyphs instead of a vector-icon package: one less native dependency to
  * link, and the app ships no font assets it does not need.
  */
@@ -38,9 +73,7 @@ function Tabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: {backgroundColor: colors.primary},
-        headerTintColor: colors.white,
-        headerTitleStyle: {fontWeight: '700'},
+        ...headerOptions,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarStyle: {backgroundColor: colors.surface, borderTopColor: colors.border},
@@ -74,9 +107,7 @@ export function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: {backgroundColor: colors.primary},
-        headerTintColor: colors.white,
-        headerTitleStyle: {fontWeight: '700'},
+        ...headerOptions,
         headerBackButtonDisplayMode: 'minimal',
       }}>
       <Stack.Screen name="Tabs" component={Tabs} options={{headerShown: false}} />
@@ -125,6 +156,16 @@ export function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
+  headerBackground: {
+    flex: 1,
+  },
+  headerStatusStrip: {
+    backgroundColor: colors.background,
+  },
+  headerBar: {
+    backgroundColor: colors.primary,
+    flex: 1,
+  },
   icon: {
     fontSize: 20,
     lineHeight: 24,

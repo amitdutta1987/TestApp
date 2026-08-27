@@ -358,7 +358,7 @@ export function SettingsScreen() {
         </Card>
 
         <Text style={styles.footer}>
-          {APP.name} {APP.version} · works fully offline · no account required
+          {APP.name} {APP.version} · {APP.tagline} · works offline, syncs when it can
         </Text>
       </ScrollView>
     </Screen>

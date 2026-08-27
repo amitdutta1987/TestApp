@@ -36,7 +36,9 @@ export const DB = {
 } as const;
 
 export const APP = {
-  name: 'Inventory',
+  name: 'Sutaghar',
+  /** Shown under the name on the splash. */
+  tagline: 'Saree House',
   version: '1.0.0',
   currency: '₹',
   locale: 'en-IN',
