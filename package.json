@@ -9,9 +9,10 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "build:android": "cd android && gradlew.bat assembleRelease",
-    "build:android:debug": "cd android && gradlew.bat assembleDebug",
-    "verify": "npm run typecheck && npm run lint && npm test"
+    "build:android": "node scripts/gradle.js assembleRelease",
+    "build:android:debug": "node scripts/gradle.js assembleDebug",
+    "verify": "npm run typecheck && npm run lint && npm test",
+    "clean:android": "node scripts/gradle.js clean"
   },
   "dependencies": {
     "@bam.tech/react-native-image-resizer": "^3.0.11",

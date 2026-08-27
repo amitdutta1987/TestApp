@@ -69,6 +69,10 @@ npm run build:android:debug   # android/app/build/outputs/apk/debug/app-debug.ap
 npm run build:android         # release; needs a signing config, see below
 ```
 
+Both go through `scripts/gradle.js`, which picks `gradlew.bat` on Windows and
+`./gradlew` everywhere else — calling either one directly from an npm script
+only works on one platform.
+
 Without a signing config, `assembleRelease` falls back to the debug keystore so
 the build still runs locally. **Do not distribute that APK.** To sign properly,
 put your keystore at `android/app/release.keystore` and add the credentials to
